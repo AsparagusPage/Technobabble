@@ -23,21 +23,16 @@ def main():
     save(subtitles)
 
 def clean(text):
-    # Remove "- " 
-    text = re.sub( "(-\s)+", "", text )
+    # Remove leading "- " and join lines
+    text =  " ".join(re.sub("^- ", "", line) for line in text.split("\n"))
     # Remove HTML
-    text = re.sub( "<.*>", "", text )
-    # Remove ellipses 
-    text = re.sub( "(\.\.\.)", "", text )
-    # Remove line breaks
-    text = re.sub( "\n", " ", text )
+    text = re.sub("<.*>", "", text)
+
     return text
 
 def save(subs):
     for text in subs:
-        print("---- BEGIN ---- ")
         print(text)
-        print("---- END ----")
 
 if __name__ == "__main__":
     main()
