@@ -62,7 +62,7 @@ def get_episodes(files):
 
 def make_episode(filename):
     # Find the season and episode numbers in the filename
-    nums = re.search("(\d{1,2})x(\d{2})", filename)
+    nums = re.search("(\d{1,2})x(\d{2}(?:-\d{2})?)", filename)
     # If the numbers are found
     if nums:
         # Create the episode label
