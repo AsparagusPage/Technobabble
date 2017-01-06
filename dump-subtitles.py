@@ -9,39 +9,25 @@ import pysrt
 
 def main():
     parser = argparse.ArgumentParser(description="Extract subtitles")
-    parser.add_argument("--write", default="subtitles.csv", help="name of csv \
-                        file to write")
-    parser.add_argument("--encoding", default="ISO-8859-2", help="character \
-                        encoding of subtitles")
-    parser.add_argument("subtitles", nargs="*", help="list of subtitle file \
-                        names")
+    parser.add_argument("--write", type=argparse.FileType('w'),
+            default="subtitles.csv", help="csv file to write to")
+    parser.add_argument("--encoding", default="ISO-8859-2",
+            help="character encoding of subtitle files")
+    parser.add_argument("subtitles", nargs="+",
+            help="list of subtitle files")
     args = parser.parse_args()
 
-    print("Extracting subtitles and episode labels")
-    subs = get_subtitles(args.subtitles, args.encoding)
-    eps = get_episodes(args.subtitles)
-    print("Writing csv file")
-    with open(args.write, "w", newline="", encoding="utf-8") as csvfile:
-        writer = csv.writer(csvfile)
-        writer.writerow(["episode", "subtitles"])
-        writer.writerows(zip(eps,subs))
+
+    print("Extracting data from subtitles and writing CSV")
+    writer = csv.DictWriter(args.write, ["episode", "start", "text"])
+    writer.writeheader()
+    for path in args.subtitles:
+        episode = get_episode(path)
+        for sub in pysrt.open(path, encoding=args.encoding):
+            row = {"episode": episode, "start": sub.start.ordinal, "text": clean(sub.text)}
+            writer.writerow(row)
+
     print("done!")
-
-def get_subtitles(files, encoding):
-    # text of subtitles
-    subtitles = []
-    # For each argument passed to this script (paths)
-    for filename in files:
-        # text of subtitles in that file
-        scriptSubs = []
-        # For each sub-title object in the file
-        for sub in pysrt.open(filename, encoding=encoding):
-        # Add a clean version of our text to the script subtitle collection
-            scriptSubs.append(clean(sub.text))
-        # Add the clean version to the general subtitle collection
-        subtitles.append(" ".join(scriptSubs))
-
-    return subtitles
 
 def clean(text):
     # Remove leading "- " and join lines
@@ -51,17 +37,7 @@ def clean(text):
 
     return text
 
-def get_episodes(files):
-    # episode labels
-    episodes = []
-    # For each sub-title object in the file
-    for filename in files:
-        # Add the label to the episode label collection
-        episodes.append(make_episode(filename))
-
-    return episodes
-
-def make_episode(filename):
+def get_episode(filename):
     # Find the season and episode numbers in the filename
     nums = re.search("(\d{1,2})x(\d{2}(?:-\d{2})?)", filename)
     # If the numbers are found
