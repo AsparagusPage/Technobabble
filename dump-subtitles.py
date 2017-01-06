@@ -21,8 +21,9 @@ def main():
     subs = get_subtitles(args.subtitles, args.encoding)
     eps = get_episodes(args.subtitles)
     print("Writing csv file")
-    with open(args.csvfile, "w", newline="", encoding="utf-8") as csvfile:
+    with open(args.write, "w", newline="", encoding="utf-8") as csvfile:
         writer = csv.writer(csvfile)
+        writer.writerow(["episode", "subtitles"])
         writer.writerows(zip(eps,subs))
     print("done!")
 
