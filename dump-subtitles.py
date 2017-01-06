@@ -9,7 +9,7 @@ import pysrt
 
 def main():
     parser = argparse.ArgumentParser(description="Extract subtitles")
-    parser.add_argument("csvfile", help="name of csv \
+    parser.add_argument("--write", default="subtitles.csv", help="name of csv \
                         file to write")
     parser.add_argument("--encoding", default="ISO-8859-2", help="character \
                         encoding of subtitles")
