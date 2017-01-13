@@ -15,16 +15,29 @@ def main():
             help="character encoding of subtitle files")
     parser.add_argument("subtitles", nargs="+",
             help="list of subtitle files")
+    parser.add_argument("--by-time", action="store_true",
+            help="Divide by an additional 'start' column")
     args = parser.parse_args()
 
-
     print("Extracting data from subtitles and writing CSV")
-    writer = csv.DictWriter(args.write, ["episode", "start", "text"])
-    writer.writeheader()
-    for path in args.subtitles:
-        episode = get_episode(path)
-        for sub in pysrt.open(path, encoding=args.encoding):
-            row = {"episode": episode, "start": sub.start.ordinal, "text": clean(sub.text)}
+    if args.by_time:
+        writer = csv.DictWriter(args.write, ["episode", "start", "text"])
+        writer.writeheader()
+        for path in args.subtitles:
+            episode = get_episode(path)
+            for sub in pysrt.open(path, encoding=args.encoding):
+                row = {"episode": episode, "start": sub.start.ordinal, "text": clean(sub.text)}
+                writer.writerow(row)
+    else:
+        writer = csv.DictWriter(args.write, ["episode", "text"])
+        writer.writeheader()
+        for path in args.subtitles:
+            episode = get_episode(path)
+            scriptSubs = []
+            for sub in pysrt.open(path, encoding=args.encoding):
+                scriptSubs.append(clean(sub.text))
+
+            row = {"episode": episode, "text": " ".join(scriptSubs)}
             writer.writerow(row)
 
     print("done!")
