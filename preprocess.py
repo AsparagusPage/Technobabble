@@ -1,54 +1,106 @@
 #!/usr/bin/env python3
 
 import argparse
+import re
 
 import nltk
+from nltk.corpus import stopwords
 import pandas as pd
 
 def main():
-    parser = argparse.ArgumentParser(description="Preprocess CSV of subtitles")
-    parser.add_argument("csv", help="CSV of subtitles to preprocess")
+    parser = argparse.ArgumentParser(description="Preprocess CSV of subtitles for training word2vec model")
+    parser.add_argument("csv", help="CSV file of subtitles to preprocess")
     parser.add_argument("--write-prefix", default="corpus", help="prefix to use for output file name")
     parser.add_argument("--column", default="text", help="the column to find text in in the csvs")
-    parser.add_argument("--nopunc", action="store_true", help="strip punctuation")
-    parser.add_argument("--nostop", action="store_true", help="remove stopwords")
+    parser.add_argument("--keepstop", action="store_true", help="keep stopwords")
     parser.add_argument("--lemma", action="store_true", help="lemmatize")
-    parser.add_argument("--stem", action="store_true", help="stem")
     args = parser.parse_args()
 
 
+    # Read the text to be preprocessed
     df = pd.read_csv(args.csv)
     texts = df[args.column]
+
+    # Include options used in filename
     filename = args.write_prefix
-
-    if args.nopunc:
-        print("Stripping punctuation...")
-        filename += "-nopunc"
-        texts = map(strip_punc, texts)
-
-    if args.nostop:
-        print("Stripping stopwords...")
-        filename += "-nostop"
-        texts = map(strip_stopwords, texts)
-
+    if args.keepstop:
+        filename += "-keepstop"
     if args.lemma:
-        print("Lemmatizing...")
         filename += "-lemma"
-        texts = map(lemmatize, texts)
+    filename += ".txt"
 
-    if args.stem:
-        print("Stemming...")
-        filename += "-stem"
-        texts = map(stem, texts)
+    # Write the preprocessed text into the new file
+    with open(filename, "w") as f:
+        f.write(preprocess(texts, args.keepstop, args.lemma))
 
-    filename += ".csv"
 
-    df[args.column] = texts
+def preprocess(texts, stop_q, lem_q):
+    processed_texts = []
+    # For each row of raw text
+    for text in texts:
+        # Break into sentences and clean each sentence
+        text_sents = nltk.tokenize.sent_tokenize(text)
+        text_sents = [clean(sent, stop_q, lem_q) for sent in text_sents]
+        # Join sentences back together, separated by new line
+        processed_text = "\n".join(text_sents)
+        processed_texts.append(processed_text)
+    # Join everything back together, separated by new line
+    return "\n".join(processed_texts)
 
-    df.to_csv(filename)
+def clean(text, stop_q, lem_q):
+    # Remove punctuation and make everything lower case
+    text = strip_punct(text.lower())
+    # Remove stopwords unless told otherwise
+    if not stop_q:
+        text = strip_stopwords(text)
+    # Lemmatize words if asked to
+    if lem_q:
+        text = lemmatize(text)
 
-def tokenize(text, strategy):
-    return nltk.tokenizer.word_tokenize(text)
+    return text
+
+def strip_punct(text):
+    return re.sub("[^a-zA-Z]", " ", text)
+
+def strip_stopwords(text):
+    # Turn stopwords into set for speed
+    stops = set(stopwords.words("english"))
+    # Throw out stopwords
+    words = [word for word in text.lower().split() if word not in stops]
+
+    return " ".join(words)
+
+def lemmatize(text):
+    # Tag words with parts of speech for WordNetLemmatizer
+    tagged_text = word_net_tag(text)
+    lemmed_text = []
+    # Initialize lemmatizer
+    lemma = nltk.stem.wordnet.WordNetLemmatizer()
+    # Lemmatize each word according to its part of speech
+    for pair in tagged_text:
+        lemmed_text.append(lemma.lemmatize(pair[0], pair[1]))
+
+    return " ".join(lemmed_text)
+
+def word_net_tag(text):
+    # Tag the text with nltk's part of speech tagger
+    text_tuples  = nltk.pos_tag(nltk.word_tokenize(text))
+    # Tuples are inflexible, convert to list of lists
+    tagged_text = []
+    for tup in text_tuples:
+        tagged_text.append(list(tup))
+    # Convert the tags to the ones used by the word net lemmatizer.
+    # Inspired by a post on theforgetfulcoder.blogspot.com
+    tag_dict = {"NN":"n", "JJ":"a", "VB":"v", "RB":"r"}
+    for pair in tagged_text:
+        # Only look at the first two letters of original tag.
+        try:
+            pair[1] = tag_dict.get(pair[1][:2])
+        # If something's weird, tag with WordNetLemmatizer's default "n"
+        except:
+            pair[1] = "n"
+
+    return tagged_text
 
 if __name__ == "__main__":
     main()
