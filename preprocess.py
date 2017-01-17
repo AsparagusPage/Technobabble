@@ -34,27 +34,29 @@ def main():
         f.write(preprocess(texts, args.keepstop, args.lemma))
 
 
-def preprocess(texts, stop_q, lem_q):
+def preprocess(texts, keepstop, lem, stops=None):
+    if stops is None:
+        stops = set(stopwords.words("english"))
     processed_texts = []
     # For each row of raw text
     for text in texts:
         # Break into sentences and clean each sentence
         text_sents = nltk.tokenize.sent_tokenize(text)
-        text_sents = [clean(sent, stop_q, lem_q) for sent in text_sents]
+        text_sents = [clean(sent, keepstop, lem, stops) for sent in text_sents]
         # Join sentences back together, separated by new line
         processed_text = "\n".join(text_sents)
         processed_texts.append(processed_text)
     # Join everything back together, separated by new line
     return "\n".join(processed_texts)
 
-def clean(text, stop_q, lem_q):
+def clean(text, keepstop, lem, stops):
     # Remove punctuation and make everything lower case
     text = strip_punct(text.lower())
     # Remove stopwords unless told otherwise
-    if not stop_q:
-        text = strip_stopwords(text)
+    if not keepstop:
+        text = strip_stopwords(text, stops)
     # Lemmatize words if asked to
-    if lem_q:
+    if lem:
         text = lemmatize(text)
 
     return text
@@ -62,9 +64,7 @@ def clean(text, stop_q, lem_q):
 def strip_punct(text):
     return re.sub("[^a-zA-Z]", " ", text)
 
-def strip_stopwords(text):
-    # Turn stopwords into set for speed
-    stops = set(stopwords.words("english"))
+def strip_stopwords(text, stops):
     # Throw out stopwords
     words = [word for word in text.lower().split() if word not in stops]
 
@@ -77,14 +77,14 @@ def lemmatize(text):
     # Initialize lemmatizer
     lemma = nltk.stem.wordnet.WordNetLemmatizer()
     # Lemmatize each word according to its part of speech
-    for pair in tagged_text:
-        lemmed_text.append(lemma.lemmatize(pair[0], pair[1]))
+    for word, tag in tagged_text:
+        lemmed_text.append(lemma.lemmatize(word, tag))
 
     return " ".join(lemmed_text)
 
 def word_net_tag(text):
     # Tag the text with nltk's part of speech tagger
-    text_tuples  = nltk.pos_tag(nltk.word_tokenize(text))
+    text_tuples  = nltk.pos_tag(nltk.tokenize.word_tokenize(text))
     # Tuples are inflexible, convert to list of lists
     tagged_text = []
     for tup in text_tuples:
@@ -93,12 +93,13 @@ def word_net_tag(text):
     # Inspired by a post on theforgetfulcoder.blogspot.com
     tag_dict = {"NN":"n", "JJ":"a", "VB":"v", "RB":"r"}
     for pair in tagged_text:
-        # Only look at the first two letters of original tag.
-        try:
+        if pair[1][:2] in tag_dict:
+            # Only look at the first two letters of original tag.
             pair[1] = tag_dict.get(pair[1][:2])
         # If something's weird, tag with WordNetLemmatizer's default "n"
-        except:
+        else:
             pair[1] = "n"
+
 
     return tagged_text
 
