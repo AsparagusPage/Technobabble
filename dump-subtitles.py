@@ -21,7 +21,8 @@ def main():
 
     print("Extracting data from subtitles and writing CSV")
     if args.by_time:
-        writer = csv.DictWriter(args.write, ["episode", "start", "text"])
+        writer = csv.DictWriter(args.write, ["episode", "start", "text"],
+                                delimiter="\t")
         writer.writeheader()
         for path in args.subtitles:
             episode = get_episode(path)
@@ -29,7 +30,7 @@ def main():
                 row = {"episode": episode, "start": sub.start.ordinal, "text": clean(sub.text)}
                 writer.writerow(row)
     else:
-        writer = csv.DictWriter(args.write, ["episode", "text"])
+        writer = csv.DictWriter(args.write, ["episode", "text"], delimiter="\t")
         writer.writeheader()
         for path in args.subtitles:
             episode = get_episode(path)
