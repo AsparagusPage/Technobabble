@@ -18,7 +18,8 @@ def main():
 
 
     # Read the text to be preprocessed
-    df = pd.read_csv(args.csv)
+    df = pd.read_csv(args.csv, delimiter="\t", quoting=3)
+    df = df.fillna("")
     texts = df[args.column]
 
     # Include options used in filename
