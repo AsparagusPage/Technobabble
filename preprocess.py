@@ -8,12 +8,14 @@ from nltk.corpus import stopwords
 import pandas as pd
 
 def main():
-    parser = argparse.ArgumentParser(description="Preprocess CSV of subtitles for training word2vec model")
+    parser = argparse.ArgumentParser(\
+            description="Preprocess CSV of subtitles for training word2vec model")
     parser.add_argument("csv", help="CSV file of subtitles to preprocess")
     parser.add_argument("--write-prefix", default="corpus", help="prefix to use for output file name")
     parser.add_argument("--column", default="text", help="the column to find text in in the csvs")
     parser.add_argument("--keepstop", action="store_true", help="keep stopwords")
     parser.add_argument("--lemma", action="store_true", help="lemmatize")
+    parser.add_argument("--append", action="store_true", help="Append to file instead of write")
     args = parser.parse_args()
 
 
@@ -30,10 +32,12 @@ def main():
         filename += "-lemma"
     filename += ".txt"
 
-    # Write the preprocessed text into the new file
-    with open(filename, "w") as f:
-        f.write(preprocess(texts, args.keepstop, args.lemma))
+    # Determine whether to overwrite or append
+    file_flag = "a" if args.append else "w"
 
+    # Write the preprocessed text into the new file
+    with open(filename, file_flag) as f:
+        f.write(preprocess(texts, args.keepstop, args.lemma))
 
 def preprocess(texts, keepstop, lem, stops=None):
     if stops is None:
