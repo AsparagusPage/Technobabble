@@ -11,7 +11,7 @@ def main():
     parser = argparse.ArgumentParser(\
             description="Preprocess CSV of subtitles for training word2vec model")
     parser.add_argument("csv", help="CSV file of subtitles to preprocess")
-    parser.add_argument("--write-prefix", default="corpus", help="prefix to use for output file name")
+    parser.add_argument("--write_name", default="corpus", help="name to use for output file name")
     parser.add_argument("--column", default="text", help="the column to find text in in the csvs")
     parser.add_argument("--keepstop", action="store_true", help="keep stopwords")
     parser.add_argument("--lemma", action="store_true", help="lemmatize")
@@ -25,12 +25,14 @@ def main():
     texts = df[args.column]
 
     # Include options used in filename
-    filename = args.write_prefix
-    if args.keepstop:
-        filename += "-keepstop"
-    if args.lemma:
-        filename += "-lemma"
-    filename += ".txt"
+    # unless appending to existing file
+    filename = args.write_name
+    if not args.append:
+        if args.keepstop:
+            filename += "-keepstop"
+        if args.lemma:
+            filename += "-lemma"
+        filename += ".txt"
 
     # Determine whether to overwrite or append
     file_flag = "a" if args.append else "w"
@@ -45,6 +47,8 @@ def preprocess(texts, keepstop, lem, stops=None):
     processed_texts = []
     # For each row of raw text
     for text in texts:
+        # Remove ellipses before sentence tokenizing
+        text = re.sub("[\.\.\.]",".", text)
         # Break into sentences and clean each sentence
         text_sents = nltk.tokenize.sent_tokenize(text)
         text_sents = [clean(sent, keepstop, lem, stops) for sent in text_sents]
