@@ -11,37 +11,39 @@ def main():
     parser = argparse.ArgumentParser(description="Extract subtitles")
     parser.add_argument("--write", type=argparse.FileType('w'),
             default="subtitles.csv", help="csv file to write to")
+    parser.add_argument("--series_tag", default="", help="episode tag prefix")
     parser.add_argument("--encoding", default="ISO-8859-2",
             help="character encoding of subtitle files")
     parser.add_argument("subtitles", nargs="+",
             help="list of subtitle files")
-    parser.add_argument("--by-time", action="store_true",
+    parser.add_argument("--by_time", action="store_true",
             help="Divide by an additional 'start' column")
     args = parser.parse_args()
 
     print("Extracting data from subtitles and writing CSV")
-    if args.by_time:
-        writer = csv.DictWriter(args.write, ["episode", "start", "text"],
-                                delimiter="\t")
-        writer.writeheader()
-        for path in args.subtitles:
-            episode = get_episode(path)
-            for sub in pysrt.open(path, encoding=args.encoding):
-                row = {"episode": episode, "start": sub.start.ordinal, "text": clean(sub.text)}
-                writer.writerow(row)
-    else:
-        writer = csv.DictWriter(args.write, ["episode", "text"], delimiter="\t")
-        writer.writeheader()
-        for path in args.subtitles:
-            episode = get_episode(path)
-            scriptSubs = []
-            for sub in pysrt.open(path, encoding=args.encoding):
-                scriptSubs.append(clean(sub.text))
 
+    if args.by_time:
+        head = ["episode", "text", "start"]
+    else:
+        head = ["episode", "text"]
+    writer = csv.DictWriter(args.write, head, delimiter="\t")
+    writer.writeheader()
+
+    for path in args.subtitles:
+        episode = get_episode(path, args.series_tag)
+        scriptSubs = []
+        subTimes = []
+        for sub in pysrt.open(path, encoding=args.encoding):
+            scriptSubs.append(clean(sub.text))
+            if args.by_time:
+                subTimes.append(sub.start.ordinal)
+        if args.by_time:
+            for sub, time in zip(scriptSubs, subTimes):
+                row = {"episode": episode, "text": sub, "start": time}
+                writer.writerow(row)
+        else:
             row = {"episode": episode, "text": " ".join(scriptSubs)}
             writer.writerow(row)
-
-    print("done!")
 
 def clean(text):
     # Remove leading "- " and join lines
@@ -51,13 +53,13 @@ def clean(text):
 
     return text
 
-def get_episode(filename):
+def get_episode(filename, series_tag):
     # Find the season and episode numbers in the filename
     nums = re.search("(\d{1,2})x(\d{2}(?:-\d{2})?)", filename)
     # If the numbers are found
     if nums:
         # Create the episode label
-        episode = "S%sE%s" % (nums.group(1), nums.group(2))
+        episode = series_tag + "S%sE%s" % (nums.group(1), nums.group(2))
     # Otherwise
     else: episode = "n/a"
 
