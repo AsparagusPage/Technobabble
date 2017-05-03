@@ -1,3 +1,2 @@
-# Technobabble
-First project goal: identify and extract "technobabble" from subtitles of various Star Trek
-series.
+# Small corpus NLP
+Can we build meaningful models and tools usinging relatively small corpora? Let's find out. 
