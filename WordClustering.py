@@ -1,14 +1,12 @@
-import numpy as np
-
 from gensim.models import Word2Vec
-from sklearn.cluster import KMeansClustering
+from sklearn.cluster import KMeans
 from sklearn.cluster import SpectralClustering
 
-class KMeansWordClustering(KMeansClustering):
+class KMeansWordClustering(KMeans):
     '''
     Perform a k-means clustering on the vocabulary from a word2vec model using
-    scikitlearn's KMeansClustering. Default values are used for everything but
-    n_clusters when initializing KMeansClustering.
+    scikitlearn's KMeans. Default values are used for everything but
+    n_clusters when initializing KMeans.
 
     Parameters
     ----------
@@ -31,33 +29,36 @@ class KMeansWordClustering(KMeansClustering):
     sorted_words: dict
     center word : list of words in corresponding cluster
     '''
-    def __init__(self, n_clusters=10, model):
+    def __init__(self, model, n_clusters=10):
         self.n_clusters = n_clusters
-        self.model = Word2Vec.load(model)
-        self.word_vec_mat = self.model[model.wv.vocab]
+        self.loaded_model = Word2Vec.load(model)
+        self.word_vec_mat = self.loaded_model[self.loaded_model.wv.vocab]
         super().__init__(n_clusters)
-        self.fit(word_vec_mat)
+        self.fit(self.word_vec_mat)
 
     def cluster_center_dict(self):
         cluster_center_dict = {}
-        for i in range(self.n_clusters)
-            cluster_center_dict[i] = most_similar_word(self.cluster_centers[i], self.model)
+        for i in range(self.n_clusters):
+            cluster_center_dict[i] = most_similar_word(self.cluster_centers_[i], self.loaded_model)
 
         return cluster_center_dict
 
     def labeled_words(self):
         labeled_words = {}
+        labels = self.labels_
+        cc_dict = self.cluster_center_dict()
         for i in range(self.word_vec_mat.shape[0]):
-            labeled_words[most_similar_word(self.word_vec_mat[i,:], self.model)] = self.cluster_center_dict[self.labels[i]]
+            labeled_words[most_similar_word(self.word_vec_mat[i,:], self.loaded_model)] = cc_dict[labels[i]]
 
         return labeled_words
 
     def sorted_words(self):
         sorted_words= {}
+        cc_dict = self.cluster_center_dict()
         labeled_words = self.labeled_words()
         for i in range(self.n_clusters):
-            words = [word for word in labeled_words if labeled_words[word] == cluster_center_dict[i]]
-            sorted_words[self.cluster_center_dict[i]] = words
+            words = [word for word in labeled_words if labeled_words[word] == cc_dict[i]]
+            sorted_words[cc_dict[i]] = words
 
         return sorted_words
 
@@ -98,17 +99,17 @@ class SpectralWordClustering(SpectralClustering):
 
     '''
 
-    def __init__(self, n_clusters=10, affinity='rbf', gamma=1.0, n_neighbors-10, model):
+    def __init__(self, model, n_clusters=10, affinity='rbf', gamma=1.0, n_neighbors=10):
         self.n_clusters = n_clusters,
-        self.model = Word2Vec.load(model)
-        self.word_vec_mat = self.model[model.wv.vocab]
+        self.loaded_model = Word2Vec.load(model)
+        self.word_vec_mat = self.loaded_model[self.loaded_model.wv.vocab]
         super().__init__(n_clusters, affinity=affinity, gamma=gamma, n_neighbors=n_neighbors)
-        self.labels = self.fit_predict(word_vec_mat)
+        self.labels = self.fit_predict(self.word_vec_mat)
 
     def labeled_words(self):
         labeled_words = {}
         for i in range(self.word_vec_mat.shape[0]):
-            labeled_words[most_similar_word(self.word_vec_mat[i,:], self.model)] = self.labels[i]
+            labeled_words[most_similar_word(self.word_vec_mat[i,:], self.loaded_model)] = self.labels[i]
 
         return labeled_words
 
@@ -117,7 +118,9 @@ class SpectralWordClustering(SpectralClustering):
         labeled_words = self.labeled_words()
         for i in range(self.n_clusters):
             words = [word for word in labeled_words if labeled_words[word] == i]
-            sorted_words[i] = [words]
+            sorted_words[i] = words
+
+        return sorted_words
 
 
 def most_similar_word(vector, loaded_model):
