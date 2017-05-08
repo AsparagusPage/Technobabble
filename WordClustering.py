@@ -18,6 +18,13 @@ class KMeansWordClustering(KMeans):
     name of Word2Vec model
 
     Attributes
+    __________
+
+    loaded_model: loaded Word2Vec model
+
+    word_vec_mat: array of model's vocab as data points
+
+    Methods
     ----------
 
     cluster_center_dict: dict
@@ -89,6 +96,15 @@ class SpectralWordClustering(SpectralClustering):
     name of word2vec model to load
 
     Attributes
+    __________
+
+    loaded_model: loaded Word2Vec model
+
+    word_vec_mat: array of model's vocabular as data points
+
+    labels: list of cluster labeles of each point in word_vec_mat
+
+    Methods
     __________
 
     labeled_words: dict
